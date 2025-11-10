@@ -21,3 +21,25 @@ Disable or modify the Server header to remove version details. For nginx, config
 server_tokens off;
 
 Review and disable any other headers that disclose framework or technology versions (e.g., X-Powered-By).
+
+Reflected input in JSON responses (no XSS observed)
+
+Description
+During the analysis, it was observed that user-supplied input is reflected verbatim in JSON responses from multiple API endpoints. The application returns these values in the response body (Content-Type: application/json) without server-side sanitization or encoding. Proof-of-concept payloads (e.g. </script><script>alert(1)</script>) were reflected in responses but did not execute in the tested client — the payloads were rendered as raw data and no browser-executed script was observed. Despite the lack of observed execution, returning unescaped attacker-controlled data increases the risk that a client-side rendering change or a third-party consumer could later interpret the data as executable HTML/JS.
+
+Evidence
+
+Screenshots show JSON responses containing injected strings such as:
+
+"businessUnity97c<script>alert(1)</script>dkamw":[
+
+and similar reflections across multiple endpoints.
+
+PoC attempts with </script><script>alert(1)</script> were reflected in the API response but did not execute in the browser during testing.
+
+Resolution
+It is recommended to apply both server- and client-side mitigations:
+
+Server-side: validate and normalize all input; reject or sanitize input that includes unexpected HTML/JS where not required. Ensure JSON responses are generated via proper serializers and not by manual string concatenation.
+
+Client-side: treat all API data as untrusted. Render values using safe methods (e.g., textContent/innerText or escaping templating engines) and avoid innerHTML, document.write, eval, or jQuery .html() with untrusted data. If rendering HTML is necessary, sanitize with a vetted library (e.g., DOMPurify) before insertion.
