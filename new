@@ -1,0 +1,23 @@
+Exposed Web Server Version Information (nginx/1.20.0)
+
+Description
+During the analysis, it was observed that the application disclosed detailed web server information in the HTTP response headers. Specifically, the Server header revealed the underlying server software and its version as nginx/1.20.0.
+Such information disclosure can aid an attacker in identifying the exact technology stack and version in use. Using this information, an attacker can search for publicly known vulnerabilities or exploits associated with that specific server version and leverage them to compromise the target system.
+
+Exposing version details like this also increases the attack surface and provides unnecessary insights into the application’s backend infrastructure.
+
+Evidence
+In the below screenshot, it was observed that the HTTP response header contained the following entry:
+
+Server: nginx/1.20.0
+
+This confirms that the web server is leaking version information to unauthenticated users.
+
+Resolution
+It is recommended to suppress or obfuscate detailed server information in HTTP response headers. The following actions are advised:
+
+Disable or modify the Server header to remove version details. For nginx, configure the directive in nginx.conf:
+
+server_tokens off;
+
+Review and disable any other headers that disclose framework or technology versions (e.g., X-Powered-By).
