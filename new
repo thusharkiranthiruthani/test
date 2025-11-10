@@ -43,3 +43,43 @@ It is recommended to apply both server- and client-side mitigations:
 Server-side: validate and normalize all input; reject or sanitize input that includes unexpected HTML/JS where not required. Ensure JSON responses are generated via proper serializers and not by manual string concatenation.
 
 Client-side: treat all API data as untrusted. Render values using safe methods (e.g., textContent/innerText or escaping templating engines) and avoid innerHTML, document.write, eval, or jQuery .html() with untrusted data. If rendering HTML is necessary, sanitize with a vetted library (e.g., DOMPurify) before insertion.
+
+
+Verbose error messages / internal exception details disclosed
+
+Description
+During the analysis, it was observed that the application returns detailed internal error messages in API responses instead of a generic error message. The responses disclose internal implementation details such as class names, enum values, and parsing logic. For example, when invalid or malformed input is sent to the API, the server returns complete exception details like “JSON parse error: Cannot deserialize value of type com.truist.tpot.payment.model.request.FileType…” and “Unrecognized token… was expecting JSON String, Number, Array, Object…”.
+Exposing such detailed error messages provides unnecessary insight into the internal structure of the application and its backend technology, which can assist attackers in identifying internal classes, data models, and validation logic.
+
+
+---
+
+Evidence
+The issue was observed across multiple API endpoints returning detailed JSON exception messages:
+
+Example responses:
+
+"message": "JSON parse error: Cannot deserialize value of type com.truist.tpot.payment.model.request.FileType 
+from String 'ALL@jeknawug': not one of the values accepted for Enum class [ALL, MONTHLY, BULK, DAILY]"
+
+"message": "JSON parse error: Unrecognized token 'mby0y959na': was expecting JSON String, Number, Array, Object 
+or token 'null', 'true' or 'false'"
+
+These messages were returned directly to the client within a JSON structure, confirming that the application exposes internal error-handling information.
+
+Screenshots attached show the full JSON error response with highlighted exception details.
+
+
+
+---
+
+Resolution
+It is recommended to modify the application’s error-handling mechanism to prevent the exposure of internal exception details to end users:
+
+Configure a global error handler or middleware to catch and handle exceptions gracefully, returning only generic error messages such as “Invalid input format” or “An error occurred while processing your request.”
+
+Ensure that detailed error messages and stack traces are logged securely on the server for troubleshooting, and not returned to clients.
+
+Review and sanitize all API responses to remove any internal class names, file paths, or stack trace information before sending them to users.
+
+Implement proper input validation to prevent malformed requests that could trigger exceptions.
