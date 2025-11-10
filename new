@@ -83,3 +83,38 @@ Ensure that detailed error messages and stack traces are logged securely on the 
 Review and sanitize all API responses to remove any internal class names, file paths, or stack trace information before sending them to users.
 
 Implement proper input validation to prevent malformed requests that could trigger exceptions.
+
+Insecure disclosure of allowed HTTP methods in response headers
+
+Description
+During the analysis, it was observed that the application’s HTTP response headers disclose multiple allowed methods, including GET, POST, PUT, DELETE, and OPTIONS, via the Access-Control-Allow-Methods header. This disclosure indicates that the backend server is configured to accept multiple HTTP methods, some of which (e.g., PUT and DELETE) are not typically required for standard user operations.
+While the Access-Control-Allow-Methods header is used for legitimate CORS (Cross-Origin Resource Sharing) functionality, exposing unnecessary or unused methods may increase the potential attack surface. If these methods are not properly secured or validated, an attacker could attempt to exploit them to perform unauthorized actions, such as modifying or deleting data.
+
+
+---
+
+Evidence
+The issue was observed in the server response header during testing of the endpoint:
+
+POST /app/moneymovement/v1/GetMessages HTTP/2
+Host: tpot2-ite.tpot-tst.truist-tst.com
+
+Response headers:
+
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: *
+
+The response confirms that multiple HTTP methods are accepted by the server, potentially exposing unnecessary functionality.
+
+
+---
+
+Resolution
+It is recommended to restrict and configure allowed HTTP methods to only those required by the application’s legitimate business logic:
+
+Review and remove any unnecessary methods (e.g., PUT, DELETE) if not actively used by the application.
+
+Configure the server or API gateway to explicitly define allowed methods per endpoint based on functionality (for example, most public endpoints should only allow GET or POST).
+
+Implement strict authentication and authorization checks on any endpoint that legitimately supports sensitive methods such as PUT or DELETE.
